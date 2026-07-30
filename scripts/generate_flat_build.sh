@@ -23,7 +23,7 @@ ROOTDIR="${ROOTDIR:-$PWD/work}"
 ARTIFACTDIR="${ARTIFACTDIR:-$PWD/build/out}"
 DOWNLOADDIR="${DOWNLOADDIR:-$PWD/downloads}"
 
-QCOM_PTOOL_URL="https://github.com/qualcomm-linux/qcom-ptool/archive/6540ea3824aee6ffc8cac5670d87652cb21f046f.tar.gz"
+QCOM_PTOOL_URL="https://github.com/qualcomm-linux/qcom-ptool/archive/0b3897c9c10d41752e431744c8a5a6502a27828e.tar.gz"
 QCOM_PTOOL_TARBALL="$DOWNLOADDIR/qcom-ptool.tar.gz"
 
 # qcom-dtb-metadata: pinned commit that introduced build-dtb-image.sh
