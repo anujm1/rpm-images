@@ -26,7 +26,7 @@ runs:
           git make gcc bc bison flex perl python3 \
           openssl openssl-devel elfutils-libelf-devel elfutils-devel \
           rpm-build rpmdevtools \
-          rsync tar gzip findutils diffutils coreutils \
+          rsync tar gzip findutils diffutils \
           kmod dwarves \
           hostname which
 

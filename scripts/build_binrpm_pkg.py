@@ -49,8 +49,9 @@ def run(cmd, cwd=None, env=None, check=True):
 
 
 def rpm_installed(pkg: str) -> bool:
+    # Query by capability rather than package name
     try:
-        r = subprocess.run(["rpm", "-q", pkg],
+        r = subprocess.run(["rpm", "-q", "--whatprovides", pkg],
                            stdout=subprocess.DEVNULL,
                            stderr=subprocess.DEVNULL)
         return r.returncode == 0
