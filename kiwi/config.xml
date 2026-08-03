@@ -111,6 +111,7 @@
 
     <package name="libcamera-tools"/>
     <package name="libcamera-v4l2"/>
+    <package name="epel-release"/>
   </packages>
 
 </image>
