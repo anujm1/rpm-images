@@ -46,8 +46,8 @@ sudo dnf install python3 git curl unzip dosfstools mtools rpm-build dtc uboot-to
 
 # Ubuntu / Debian
 sudo apt install python3 python3-pip pipx git curl unzip dosfstools mtools rpm cpio \
-                 dtc u-boot-tools createrepo-c binfmt-support qemu-user-static \
-                 parted kpartx e2fsprogs xfsprogs grub-efi-aarch64-bin shim-signed dnf
+                 device-tree-compiler u-boot-tools createrepo-c binfmt-support \
+                 qemu-user-static qemu-utils parted kpartx e2fsprogs xfsprogs dnf
 ```
 
 ### Disk Space
