@@ -6,11 +6,7 @@ on:
       - '**/*.md'
 
 permissions:
-  checks: write
-  pull-requests: write
   contents: read
-  packages: read
-  actions: read
 
 jobs:
   event-file:
