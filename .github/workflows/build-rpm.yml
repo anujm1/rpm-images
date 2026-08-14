@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 # Concurrency is used to prevent multiple workflows from running for the same PR
 concurrency:
@@ -25,8 +26,11 @@ jobs:
     name: Phase 1 - Kernel RPM
     runs-on: [self-hosted, platform-prd-u2404-arm64-large-od-ephem]
     container:
-      image: quay.io/centos/centos:stream10
+      image: ghcr.io/qualcomm-linux/rpm-builder:centos10
       options: --user 0:0
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Record workspace owner
         run: |
