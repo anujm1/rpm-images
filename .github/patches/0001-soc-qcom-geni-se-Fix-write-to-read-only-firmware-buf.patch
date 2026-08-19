@@ -1,0 +1,147 @@
+From d6fb79dc572ea0b54847b17eb63a278a093bb613 Mon Sep 17 00:00:00 2001
+From: Viken Dadhaniya <viken.dadhaniya@oss.qualcomm.com>
+Date: Wed, 12 Aug 2026 15:40:59 +0530
+Subject: [PATCH 1/1] soc: qcom: geni-se: Fix write to read-only firmware
+ buffer
+
+geni_find_protocol_fw() casts fw->data to a non-const struct se_fw_hdr
+pointer and writes back a rounded-up fw_size value:
+
+        sefw->fw_size_in_items = cpu_to_le16(fw_size);
+
+The firmware subsystem maps the firmware blob read-only. Writing through
+the cast pointer causes a level-3 permission fault on AArch64 and
+crashes the kernel during driver probe.
+
+Remove the write-back. fw_size is u16, so incrementing 0xffff silently
+wraps to 0, bypassing MAX_GENI_CFG_RAMn_CNT and allowing an arbitrarily
+large memcpy_toio() into SE RAM; widen it to u32. fw_end was computed
+from the unrounded size, so a segment with no padding word passes the
+bounds check but triggers an out-of-bounds read during the copy; round
+up before computing fw_end. geni_load_se_fw() re-read the raw unrounded
+header field, silently bypassing the validated size; return the checked
+value through a new fw_size_out parameter instead.
+
+While at it, fix serial_protocol being read with le32_to_cpu(); the
+field is __le16, so the wrong byte-swap causes the protocol match to
+always fail on big-endian, preventing firmware from loading.
+
+Fixes: d4bf06592ad6 ("soc: qcom: geni-se: Add support to load QUP SE Firmware via Linux subsystem")
+Signed-off-by: Viken Dadhaniya <viken.dadhaniya@oss.qualcomm.com>
+---
+ drivers/soc/qcom/qcom-geni-se.c | 46 ++++++++++++++++++---------------
+ 1 file changed, 25 insertions(+), 21 deletions(-)
+
+diff --git a/drivers/soc/qcom/qcom-geni-se.c b/drivers/soc/qcom/qcom-geni-se.c
+index 15636a8dc907..fc7e5476aef9 100644
+--- a/drivers/soc/qcom/qcom-geni-se.c
++++ b/drivers/soc/qcom/qcom-geni-se.c
+@@ -1227,22 +1227,25 @@ EXPORT_SYMBOL_GPL(geni_se_resources_init);
+  * @dev: Pointer to the device structure.
+  * @fw: Pointer to the firmware image.
+  * @protocol: Expected serial engine protocol type.
++ * @fw_size_out: Non-NULL output parameter; receives the rounded, validated
++ *               firmware word count on success.
+  *
+  * Identifies the appropriate firmware image or configuration required for a
+  * specific communication protocol instance running on a  Qualcomm GENI
+  * controller.
+  *
+- * Return: pointer to a valid 'struct se_fw_hdr' if found, or NULL otherwise.
++ * Return: pointer to a valid 'const struct se_fw_hdr' if found, or NULL otherwise.
+  */
+-static struct se_fw_hdr *geni_find_protocol_fw(struct device *dev, const struct firmware *fw,
+-					       enum geni_se_protocol_type protocol)
++static const struct se_fw_hdr *geni_find_protocol_fw(struct device *dev, const struct firmware *fw,
++						     enum geni_se_protocol_type protocol,
++						     u32 *fw_size_out)
+ {
+ 	const struct elf32_hdr *ehdr;
+ 	const struct elf32_phdr *phdrs;
+ 	const struct elf32_phdr	*phdr;
+-	struct se_fw_hdr *sefw;
++	const struct se_fw_hdr *sefw;
+ 	u32 fw_end, cfg_idx_end, cfg_val_end;
+-	u16 fw_size;
++	u32 fw_size;
+ 	int i;
+ 
+ 	if (!fw || fw->size < sizeof(struct elf32_hdr))
+@@ -1281,24 +1284,24 @@ static struct se_fw_hdr *geni_find_protocol_fw(struct device *dev, const struct
+ 		if (phdr->p_filesz < sizeof(struct se_fw_hdr))
+ 			continue;
+ 
+-		sefw = (struct se_fw_hdr *)(fw->data + phdr->p_offset);
++		sefw = (const struct se_fw_hdr *)(fw->data + phdr->p_offset);
+ 		fw_size = le16_to_cpu(sefw->fw_size_in_items);
+-		fw_end = le16_to_cpu(sefw->fw_offset) + fw_size * sizeof(u32);
+-		cfg_idx_end = le16_to_cpu(sefw->cfg_idx_offset) +
+-			      le16_to_cpu(sefw->cfg_size_in_items) * sizeof(u8);
+-		cfg_val_end = le16_to_cpu(sefw->cfg_val_offset) +
+-			      le16_to_cpu(sefw->cfg_size_in_items) * sizeof(u32);
+ 
+ 		if (le32_to_cpu(sefw->magic) != SE_MAGIC_NUM || le32_to_cpu(sefw->version) != 1)
+ 			continue;
+ 
+-		if (le32_to_cpu(sefw->serial_protocol) != protocol)
++		if (le16_to_cpu(sefw->serial_protocol) != protocol)
+ 			continue;
+ 
+-		if (fw_size % 2 != 0) {
++		/* Round up so fw_end covers the full copy range. */
++		if (fw_size % 2 != 0)
+ 			fw_size++;
+-			sefw->fw_size_in_items = cpu_to_le16(fw_size);
+-		}
++
++		fw_end = le16_to_cpu(sefw->fw_offset) + fw_size * sizeof(u32);
++		cfg_idx_end = le16_to_cpu(sefw->cfg_idx_offset) +
++			      le16_to_cpu(sefw->cfg_size_in_items) * sizeof(u8);
++		cfg_val_end = le16_to_cpu(sefw->cfg_val_offset) +
++			      le16_to_cpu(sefw->cfg_size_in_items) * sizeof(u32);
+ 
+ 		if (fw_size >= MAX_GENI_CFG_RAMn_CNT) {
+ 			dev_err(dev,
+@@ -1313,6 +1316,7 @@ static struct se_fw_hdr *geni_find_protocol_fw(struct device *dev, const struct
+ 			continue;
+ 		}
+ 
++		*fw_size_out = fw_size;
+ 		return sefw;
+ 	}
+ 
+@@ -1423,17 +1427,17 @@ static int geni_load_se_fw(struct geni_se *se, const struct firmware *fw,
+ {
+ 	const u32 *fw_data, *cfg_val_arr;
+ 	const u8 *cfg_idx_arr;
+-	u32 i, reg_value;
++	u32 i, reg_value, fw_size_in_items;
+ 	int ret;
+-	struct se_fw_hdr *hdr;
++	const struct se_fw_hdr *hdr;
+ 
+-	hdr = geni_find_protocol_fw(se->dev, fw, protocol);
++	hdr = geni_find_protocol_fw(se->dev, fw, protocol, &fw_size_in_items);
+ 	if (!hdr)
+ 		return -EINVAL;
+ 
+-	fw_data = (const u32 *)((u8 *)hdr + le16_to_cpu(hdr->fw_offset));
++	fw_data = (const u32 *)((const u8 *)hdr + le16_to_cpu(hdr->fw_offset));
+ 	cfg_idx_arr = (const u8 *)hdr + le16_to_cpu(hdr->cfg_idx_offset);
+-	cfg_val_arr = (const u32 *)((u8 *)hdr + le16_to_cpu(hdr->cfg_val_offset));
++	cfg_val_arr = (const u32 *)((const u8 *)hdr + le16_to_cpu(hdr->cfg_val_offset));
+ 
+ 	ret = geni_icc_set_bw(se);
+ 	if (ret)
+@@ -1504,7 +1508,7 @@ static int geni_load_se_fw(struct geni_se *se, const struct firmware *fw,
+ 
+ 	/* Program RAM address space. */
+ 	memcpy_toio(se->base + SE_GENI_CFG_RAMN, fw_data,
+-		    le16_to_cpu(hdr->fw_size_in_items) * sizeof(u32));
++		    fw_size_in_items * sizeof(u32));
+ 
+ 	/* Put default values on GENI's output pads. */
+ 	writel_relaxed(0x1, se->base + GENI_FORCE_DEFAULT_REG);
+-- 
+2.34.1
+
