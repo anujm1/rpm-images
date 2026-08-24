@@ -26,9 +26,8 @@ DOWNLOADDIR="${DOWNLOADDIR:-$PWD/downloads}"
 QCOM_PTOOL_URL="https://github.com/qualcomm-linux/qcom-ptool/archive/0b3897c9c10d41752e431744c8a5a6502a27828e.tar.gz"
 QCOM_PTOOL_TARBALL="$DOWNLOADDIR/qcom-ptool.tar.gz"
 
-# qcom-dtb-metadata: pinned commit that introduced build-dtb-image.sh
 QCOM_DTB_METADATA_URL="https://github.com/qualcomm-linux/qcom-dtb-metadata.git"
-QCOM_DTB_METADATA_COMMIT="${QCOM_DTB_METADATA_COMMIT:-bf8f11f5274d850f71cc1af8b5a5c46683c14eee}"
+QCOM_DTB_METADATA_COMMIT="${QCOM_DTB_METADATA_COMMIT:-f1596a6b726c232743f968786de375a91d954eca}"
 QCOM_DTB_METADATA_DIR="$DOWNLOADDIR/qcom-dtb-metadata"
 
 # VFAT sizing knobs (KiB)
