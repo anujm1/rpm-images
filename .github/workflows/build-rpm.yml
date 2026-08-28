@@ -40,7 +40,7 @@ jobs:
           echo "WORKSPACE_OWNER=${owner}" >> "$GITHUB_ENV"
 
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Build kernel RPMs
         uses: ./.github/actions/build-kernel-rpm
@@ -48,7 +48,7 @@ jobs:
           kernel-ref: qcom-6.18.y-20260812
 
       - name: Upload kernel artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: kernel-artifacts
           if-no-files-found: error
@@ -70,7 +70,7 @@ jobs:
     runs-on: [self-hosted, platform-prd-u2404-arm64-large-od-ephem]
     steps:
       - name: Download kernel artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: kernel-artifacts
           path: kernel-artifacts
@@ -84,7 +84,7 @@ jobs:
           (cd kernel-rpms && sha256sum $(find . -maxdepth 1 -type f) | tee sha256sums.txt)
 
       - name: Publish kernel RPMs (S3)
-        uses: qualcomm-linux/upload-private-artifact-action@aws-v4
+        uses: qualcomm-linux/upload-private-artifact-action@4940e9327cd7386acdb908b61c714c079b7d754b # aws-v4
         id: upload_kernel_s3
         with:
           path: kernel-rpms
@@ -109,13 +109,13 @@ jobs:
       url: ${{ steps.url.outputs.url }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Install host dependencies
         uses: ./.github/actions/install-host-deps
 
       - name: Download kernel artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: kernel-artifacts
           path: kernel-artifacts
@@ -150,7 +150,7 @@ jobs:
 
       - name: Install cosign
         # Required so the syft installer can verify the release signature (-v).
-        uses: sigstore/cosign-installer@v4.1.2
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
 
       - name: Install Syft
         run: |
@@ -190,7 +190,7 @@ jobs:
           (cd rpm-artifacts && sha256sum $(find . -maxdepth 1 -type f) | tee sha256sums.txt)
 
       - name: Upload artifacts (S3)
-        uses: qualcomm-linux/upload-private-artifact-action@aws-v4
+        uses: qualcomm-linux/upload-private-artifact-action@4940e9327cd7386acdb908b61c714c079b7d754b # aws-v4
         id: upload_artifacts_s3
         with:
           path: rpm-artifacts
@@ -207,7 +207,7 @@ jobs:
           done
 
       - name: Upload SBOMs (S3)
-        uses: qualcomm-linux/upload-private-artifact-action@aws-v4
+        uses: qualcomm-linux/upload-private-artifact-action@4940e9327cd7386acdb908b61c714c079b7d754b # aws-v4
         id: upload_sboms_s3
         with:
           path: sboms
