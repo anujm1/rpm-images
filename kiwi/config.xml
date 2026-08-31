@@ -132,6 +132,7 @@
   <!-- ── gnome profile packages (GNOME desktop) ─────────────────────────────── -->
   <packages type="image" profiles="gnome">
     <namedCollection name="GNOME"/>
+    <package name="weston"/>
   </packages>
 
 </image>
