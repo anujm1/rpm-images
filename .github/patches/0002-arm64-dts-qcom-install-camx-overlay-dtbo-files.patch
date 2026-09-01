@@ -1,0 +1,124 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gangabhavani Yenugula <gyenugul@qti.qualcomm.com>
+Date: Tue, 25 Aug 2026 00:00:00 +0530
+Subject: [PATCH] arm64: dts: qcom: install camx overlay .dtbo files
+
+Each *-camx overlay (hamoa, lemans, monaco, purwa, qcs615,
+qcs6490-rb3gen2-vision-mezzanine, qcs8300-ride, sa8775p-ride,
+talos-evk, and their -el2 variants) is only referenced as a
+constituent of a `<name>-dtbs :=` composition line. Kbuild compiles
+the standalone .dtbo from its .dtso as a build dependency for the
+fdtoverlay step, but dtbs_install() and binrpm-pkg/bindeb-pkg only
+copy files listed in dtb-y. Since the .dtbo itself is never added to
+dtb-y, it is compiled into the object tree but never installed into
+INSTALL_DTBS_PATH, so it never reaches the packaged kernel's dtb
+payload.
+
+This breaks any downstream FIT/overlay image builder (e.g.
+qcom-dtb-metadata's build-dtb-image.sh --prune) that stages DTBs from
+the installed kernel package: the FIT image ends up silently missing
+these camx overlay nodes and any configuration that references them,
+even though qcom-next-fitimage.its lists them.
+
+qcom-next already lists each of these .dtbo stems directly in dtb-y
+in addition to the .dtb composition; mirror that here for qcom-6.18.y
+so the overlays are actually installed and staged.
+
+Signed-off-by: Gangabhavani Yenugula <gyenugul@qti.qualcomm.com>
+---
+ arch/arm64/boot/dts/qcom/Makefile | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/qcom/Makefile b/arch/arm64/boot/dts/qcom/Makefile
+index 9056576..aba0ffc 100644
+--- a/arch/arm64/boot/dts/qcom/Makefile
++++ b/arch/arm64/boot/dts/qcom/Makefile
+@@ -459,18 +459,22 @@ dtb-$(CONFIG_ARCH_QCOM)	+= x1p42100-lenovo-thinkbook-16.dtb x1p42100-lenovo-thin
+ hamoa-evk-camx-dtbs  := hamoa-iot-evk.dtb hamoa-evk-camx.dtbo
+
+ dtb-$(CONFIG_ARCH_QCOM)	+= hamoa-evk-camx.dtb
++dtb-$(CONFIG_ARCH_QCOM)	+= hamoa-evk-camx.dtbo
+
+ hamoa-camx-el2-dtbs  := hamoa-iot-evk-el2.dtb hamoa-evk-camx.dtbo hamoa-camx-el2.dtbo
+
+ dtb-$(CONFIG_ARCH_QCOM)	+= hamoa-camx-el2.dtb
++dtb-$(CONFIG_ARCH_QCOM)	+= hamoa-camx-el2.dtbo
+
+ lemans-evk-camx-dtbs	:= lemans-evk.dtb lemans-evk-camx.dtbo
+
+ dtb-$(CONFIG_ARCH_QCOM)	+= lemans-evk-camx.dtb
++dtb-$(CONFIG_ARCH_QCOM)	+= lemans-evk-camx.dtbo
+
+ lemans-camx-el2-dtbs	:= lemans-evk-el2.dtb lemans-evk-camx.dtbo lemans-camx-el2.dtbo
+
+ dtb-$(CONFIG_ARCH_QCOM)	+= lemans-camx-el2.dtb
++dtb-$(CONFIG_ARCH_QCOM)	+= lemans-camx-el2.dtbo
+
+ dtb-$(CONFIG_ARCH_QCOM)	+= lemans-evk-staging.dtbo
+
+@@ -480,10 +484,12 @@ dtb-$(CONFIG_ARCH_QCOM)	+= lemans-staging.dtbo
+ monaco-evk-camx-dtbs   := monaco-evk.dtb monaco-evk-camx.dtbo
+
+ dtb-$(CONFIG_ARCH_QCOM) += monaco-evk-camx.dtb
++dtb-$(CONFIG_ARCH_QCOM) += monaco-evk-camx.dtbo
+
+ monaco-camx-el2-dtbs	:= monaco-evk-el2.dtb monaco-evk-camx.dtbo monaco-camx-el2.dtbo
+
+ dtb-$(CONFIG_ARCH_QCOM)	+= monaco-camx-el2.dtb
++dtb-$(CONFIG_ARCH_QCOM)	+= monaco-camx-el2.dtbo
+
+ dtb-$(CONFIG_ARCH_QCOM)	+= monaco-evk-staging.dtbo
+ dtb-$(CONFIG_ARCH_QCOM)	+= monaco-rtss-mb.dtbo
+@@ -493,10 +499,12 @@ dtb-$(CONFIG_ARCH_QCOM)	+= monaco-staging.dtbo
+ purwa-evk-camx-dtbs     := purwa-iot-evk.dtb purwa-evk-camx.dtbo
+
+ dtb-$(CONFIG_ARCH_QCOM)	+= purwa-evk-camx.dtb
++dtb-$(CONFIG_ARCH_QCOM)	+= purwa-evk-camx.dtbo
+
+ purwa-camx-el2-dtbs     := purwa-iot-evk-el2.dtb purwa-evk-camx.dtbo purwa-camx-el2.dtbo
+
+ dtb-$(CONFIG_ARCH_QCOM)	+= purwa-camx-el2.dtb
++dtb-$(CONFIG_ARCH_QCOM)	+= purwa-camx-el2.dtbo
+
+ qcs5430-fps-camx-dtbs   := qcs6490-rb3gen2.dtb qcs5430-fps-camx.dtbo
+
+@@ -505,11 +513,13 @@ dtb-$(CONFIG_ARCH_QCOM) += qcs5430-fps-camx.dtb
+ qcs615-ride-camx-dtbs	:= qcs615-ride.dtb qcs615-ride-camx.dtbo
+
+ dtb-$(CONFIG_ARCH_QCOM)	+= qcs615-ride-camx.dtb
++dtb-$(CONFIG_ARCH_QCOM)	+= qcs615-ride-camx.dtbo
+
+ qcs6490-rb3gen2-vision-mezzanine-camx-dtbs := qcs6490-rb3gen2-vision-mezzanine.dtb \
+ 					      qcs6490-rb3gen2-vision-mezzanine-camx.dtbo
+
+ dtb-$(CONFIG_ARCH_QCOM) += qcs6490-rb3gen2-vision-mezzanine-camx.dtb
++dtb-$(CONFIG_ARCH_QCOM) += qcs6490-rb3gen2-vision-mezzanine-camx.dtbo
+
+ dtb-$(CONFIG_ARCH_QCOM)	+= qcs6490-rb3gen2-staging.dtbo
+
+@@ -518,6 +528,7 @@ dtb-$(CONFIG_ARCH_QCOM) += qcs6490-rb3gen2-industrial-mezzanine-staging.dtbo
+ qcs8300-ride-camx-dtbs:= qcs8300-ride.dtb qcs8300-ride-camx.dtbo
+
+ dtb-$(CONFIG_ARCH_QCOM) += qcs8300-ride-camx.dtb
++dtb-$(CONFIG_ARCH_QCOM) += qcs8300-ride-camx.dtbo
+
+ qcs9100-ride-camx-dtbs:= qcs9100-ride.dtb sa8775p-ride-camx.dtbo
+
+@@ -530,6 +541,7 @@ dtb-$(CONFIG_ARCH_QCOM)	+= qcs9100-ride-r3-camx.dtb
+ sa8775p-ride-camx-dtbs:= sa8775p-ride.dtb sa8775p-ride-camx.dtbo
+
+ dtb-$(CONFIG_ARCH_QCOM)	+= sa8775p-ride-camx.dtb
++dtb-$(CONFIG_ARCH_QCOM)	+= sa8775p-ride-camx.dtbo
+
+ sa8775p-ride-r3-camx-dtbs:= sa8775p-ride-r3.dtb sa8775p-ride-camx.dtbo
+
+@@ -538,6 +550,7 @@ dtb-$(CONFIG_ARCH_QCOM)	+= sa8775p-ride-r3-camx.dtb
+ talos-evk-camx-dtbs	:= talos-evk.dtb talos-evk-camx.dtbo
+
+ dtb-$(CONFIG_ARCH_QCOM)	+= talos-evk-camx.dtb
++dtb-$(CONFIG_ARCH_QCOM)	+= talos-evk-camx.dtbo
+
+ dtb-$(CONFIG_ARCH_QCOM) += talos-staging.dtbo
+
+--
+2.34.1
