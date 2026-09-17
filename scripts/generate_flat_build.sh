@@ -27,7 +27,7 @@ QCOM_PTOOL_URL="https://github.com/qualcomm-linux/qcom-ptool/archive/0b3897c9c10
 QCOM_PTOOL_TARBALL="$DOWNLOADDIR/qcom-ptool.tar.gz"
 
 QCOM_DTB_METADATA_URL="https://github.com/qualcomm-linux/qcom-dtb-metadata.git"
-QCOM_DTB_METADATA_COMMIT="${QCOM_DTB_METADATA_COMMIT:-f1596a6b726c232743f968786de375a91d954eca}"
+QCOM_DTB_METADATA_COMMIT="${QCOM_DTB_METADATA_COMMIT:-9c414872fb410cfa9c8a138b0d7ed111bc5349aa}"
 QCOM_DTB_METADATA_DIR="$DOWNLOADDIR/qcom-dtb-metadata"
 
 # VFAT sizing knobs (KiB)
