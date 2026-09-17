@@ -32,6 +32,15 @@ mkdir -p /etc/sudoers.d
 echo "qcom ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-qcom
 chmod 440 /etc/sudoers.d/90-qcom
 
+# The kiwi overlay tree (kiwi/root/) is copied into the image with the perms it
+# had in the checkout. git does not track directory modes, so directories are
+# created at clone time using the operator's umask: a restrictive umask (e.g.
+# 027) yields these as drwxr-x---, breaking directory traversal for unprivileged
+# daemons.
+for d in /usr /usr/lib /usr/lib/repart.d; do
+    [ -d "$d" ] && chmod 0755 "$d"
+done
+
 # ── Services ──────────────────────────────────────────────────────────────────
 systemctl enable sshd.service        || true
 systemctl enable NetworkManager.service || true
