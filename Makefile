@@ -18,6 +18,12 @@ EXTRA_KIWI_OPTS ?=
 # Directory for custom kernel RPMs (populated before 'make image')
 KIWI_PACKAGES_DIR ?= packages
 
+# Directory of CentOS spec "overlays" rebuilt into KIWI_PACKAGES_DIR before
+# the local repo is indexed. Empty/absent = no overlays (clean no-op).
+OVERLAY_DIR      ?= overlay
+# Container image used to rebuild overlay RPMs (qcom-rpm-utils rpm-builder).
+RPM_BUILDER_IMAGE ?=
+
 ARTIFACTDIR      ?= build/out
 TARGET_BOARDS    ?= qcs6490-rb3gen2
 # Set USE_FIT_IMAGE=0 to use single-DTB mode instead of FIT multi-DTB
@@ -32,9 +38,28 @@ EFI_BIN      := $(FLASHIMAGES)/efi.bin
 ROOTFS_IMG   := $(FLASHIMAGES)/rootfs.img
 DTBS_TAR     := $(FLASHIMAGES)/dtbs.tar.gz
 
-.PHONY: all image dtbs flash-artifacts flash clean clean-cache clean-downloads help
+.PHONY: all image overlays dtbs flash-artifacts flash clean clean-cache clean-downloads clean-overlays help
 
 all: flash
+
+# Overlay packages: each $(OVERLAY_DIR)/<pkg>/ with an overlay.conf carries a
+# diff against a CentOS spec, rebuilt into $(KIWI_PACKAGES_DIR) before indexing.
+OVERLAY_PKGS := $(wildcard $(OVERLAY_DIR)/*/overlay.conf)
+
+# Rebuild + stage any spec overlays into the local package dir. Clean no-op
+# when $(OVERLAY_DIR) has no package directories.
+overlays:
+	OVERLAY_DIR="$(OVERLAY_DIR)" \
+	PACKAGES_DIR="$(KIWI_PACKAGES_DIR)" \
+	$(if $(RPM_BUILDER_IMAGE),RPM_BUILDER_IMAGE="$(RPM_BUILDER_IMAGE)",) \
+	  scripts/build_overlay_rpms.sh
+
+# When overlays exist, build+stage them before the repo index so freshly
+# rebuilt RPMs are always picked up (forces a refresh each run). When none
+# exist, the index keeps its normal incremental behavior.
+ifneq ($(OVERLAY_PKGS),)
+$(KIWI_PACKAGES_DIR)/repodata: overlays
+endif
 
 # Build (or refresh) the local RPM-MD repository index.
 $(KIWI_PACKAGES_DIR)/repodata: $(wildcard $(KIWI_PACKAGES_DIR)/*.rpm)
@@ -78,6 +103,11 @@ flash: $(EFI_BIN) $(ROOTFS_IMG) $(DTBS_TAR)
 clean:
 	rm -rf $(BUILD_OUTPUT) $(ARTIFACTDIR) $(BUILD_LOGS)
 
+# Remove overlay build scratch (SRPMs, exploded specs, rebuilt RPMs).
+# Does not touch the tracked overlay/ sources.
+clean-overlays:
+	rm -rf build/overlay
+
 # Remove the generated repodata index from the local packages directory
 clean-cache:
 	rm -rf $(KIWI_PACKAGES_DIR)/repodata
@@ -91,6 +121,7 @@ help:
 	@echo ""
 	@echo "Build targets:"
 	@echo "  image           Step 1: Build CentOS Stream 10 disk image (kiwi)"
+	@echo "  overlays        Rebuild CentOS spec overlays into $(KIWI_PACKAGES_DIR) (auto-run by image)"
 	@echo "  flash-artifacts Step 2: Extract EFI + rootfs from raw disk image"
 	@echo "  flash           Step 3: Assemble per-board flash packages"
 	@echo "  all             All steps (default)"
@@ -98,6 +129,7 @@ help:
 	@echo "Utility targets:"
 	@echo "  clean           Remove build outputs (BUILD_OUTPUT, ARTIFACTDIR, BUILD_LOGS)"
 	@echo "  clean-cache     Remove local package repo repodata ($(KIWI_PACKAGES_DIR)/repodata)"
+	@echo "  clean-overlays  Remove overlay build scratch (build/overlay)"
 	@echo "  clean-downloads Remove cached boot-binary and CDT downloads"
 	@echo "  help            Show this help"
 	@echo ""
@@ -112,6 +144,8 @@ help:
 	@echo "  EXTRA_FLASH_OPTS   Extra flags for generate_flat_build.sh"
 	@echo "  EXTRA_KIWI_OPTS    Extra flags for kiwi-ng"
 	@echo "  KIWI_PACKAGES_DIR  Directory for custom RPMs (default: $(KIWI_PACKAGES_DIR))"
+	@echo "  OVERLAY_DIR        Directory of CentOS spec overlays (default: $(OVERLAY_DIR))"
+	@echo "  RPM_BUILDER_IMAGE  Overlay build container (default: qcom-rpm-utils rpm-builder:centos10)"
 	@echo "  KIWI_PROFILE       Image profile: console (default) = headless"
 	@echo "                                    gnome             = GNOME desktop"
 	@echo ""

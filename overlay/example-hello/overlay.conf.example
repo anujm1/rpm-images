@@ -1,0 +1,18 @@
+# Example overlay config. Rename to 'overlay.conf' to activate this overlay.
+#
+# Fetch the pristine CentOS SRPM for 'hello', apply spec.patch, rebuild, and
+# stage the result into ../../packages/.
+
+# Source package name (fetches the current CentOS Stream version).
+SRPM=hello
+
+# Pin to an exact NVR for reproducible builds (recommended). Update this when
+# CentOS bumps the package and you refresh spec.patch. Example value only —
+# set to a version that actually exists in the configured repos before use.
+#SRPM_NVR=hello-2.12-1.el10
+
+# Extra HTTP(S) dnf repo for BuildRequires resolution (optional).
+#EXTRA_REPO=https://example.com/my/repo/
+
+# Extra rpmbuild defines (optional).
+#MACROS=--define "with_feature 1"

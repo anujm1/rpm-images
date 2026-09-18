@@ -1,0 +1,21 @@
+--- a/hello.spec
++++ b/hello.spec
+@@ -1,6 +1,6 @@
+ Name:           hello
+ Version:        2.12
+-Release:        1%{?dist}
++Release:        1.overlay1%{?dist}
+ Summary:        Prints a familiar, friendly greeting
+
+ License:        GPL-3.0-or-later
+@@ -28,5 +28,10 @@
+ %{_infodir}/hello.info*
+
+ %changelog
++* Thu Sep 18 2026 Qualcomm Technologies, Inc. <linux@qualcomm.com> - 2.12-1.overlay1
++- Example overlay rebuild from rpm-images. Replace this diff with your real
++  change (this one only bumps Release + %changelog so the rebuilt RPM
++  outranks the stock CentOS package).
++
+ * Mon Jan 01 2024 CentOS Stream <releng@centos.org> - 2.12-1
+ - Initial packaging (illustrative changelog entry for the example overlay)

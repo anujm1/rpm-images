@@ -93,8 +93,11 @@ Minimum **50 GB** free in the build directory.
 │       └── usr/lib/repart.d/
 │           └── 10-root.conf     # Auto-grow root partition on first boot
 ├── packages/                    # Drop custom kernel RPMs here before building
+├── overlay/                     # CentOS spec overlays (diff + rebuild into packages/)
+│   └── <pkg>/{overlay.conf,spec.patch}
 ├── scripts/
 │   ├── build_binrpm_pkg.py      # Kernel RPM builder
+│   ├── build_overlay_rpms.sh    # CentOS spec-overlay RPM builder
 │   ├── extract_flash_artifacts.sh
 │   └── generate_flat_build.sh
 └── build/
@@ -178,6 +181,29 @@ high-priority local repository:
 cp work/linux/rpmbuild/RPMS/aarch64/*.rpm packages/
 make image
 ```
+
+#### Overlaying a CentOS package
+
+When a package must come from CentOS but needs a small local change, maintain a
+**diff against its spec file** under `overlay/` instead of forking it. `make
+image` rebuilds each overlay from the pristine CentOS SRPM + your diff and
+stages it into `packages/`, where it outranks the stock package via the same
+priority-1 local repo:
+
+```
+overlay/<pkg>/
+├── overlay.conf   # which SRPM to fetch (SRPM / SRPM_NVR) + build options
+├── spec.patch     # unified diff (-p1) against the pristine CentOS .spec
+└── sources/       # optional extra PatchN:/SourceN: files
+```
+
+```bash
+make overlays      # auto-run by 'make image'; builds via qcom-rpm-utils rpm-builder
+```
+
+See [`overlay/README.md`](overlay/README.md) for the full workflow (creating a
+diff, pinning versions, refreshing when CentOS moves). Requires `docker`
+(plus `qemu-user-static` on x86_64 dev hosts, since the builder image is aarch64).
 
 #### Adding extra firmware
 

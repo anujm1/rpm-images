@@ -6,3 +6,5 @@ packages/*.rpm
 packages/repodata/
 # generated at CI build time by the workflow
 kiwi/root/etc/buildinfo
+# overlay build scratch (SRPMs, exploded specs) lives under build/ (ignored above)
+overlay/*/sources-cache/
