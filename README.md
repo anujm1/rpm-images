@@ -1,44 +1,21 @@
-# RPM Image Builder
+# Qualcomm Linux RPM images
 
-## Overview
+A collection of recipes to build Qualcomm Linux images for CentOS.
 
-Generates CentOS Stream 10 (aarch64) disk images for Qualcomm RB3 Gen2 platforms using **[kiwi-ng](https://osinside.github.io/kiwi/)**.
+This repository provides [kiwi](https://osinside.github.io/kiwi/) recipes
+based on CentOS Stream 10 for the Qualcomm RB3 Gen2 Development Kit
+(QCS6490).
 
-## Features
+## Requirements
 
-- Custom Linux kernel compilation (QCOM kernels, linux-next, upstream)
-- CentOS Stream 10 OS image generation using **kiwi-ng**
-- FIT multi-DTB image generation via `build-dtb-image.sh`
-- Board-specific flash artifact generation (`generate_flat_build.sh`)
-
----
-
-## Supported Targets
-
-- **Operating System**: CentOS Stream 10
-- **Architecture**: aarch64 (ARM64)
-- **Platforms**:
-
-| Board name | Storage |
-|---|---|
-| `qcs6490-rb3gen2` | UFS |
-
-> All three RB3 Gen2 kit variants (vision-kit, core-kit, industrial-kit) share
-> a single board entry. All CDTs are bundled in the flash directory.
-> `cdt.bin` targets the vision-kit by default. See [CDT Selection](#cdt-selection).
-
----
-
-## Prerequisites
-
-### Install kiwi-ng
+Install kiwi:
 
 ```bash
 sudo pipx install kiwi
 sudo pipx ensurepath   # then restart your shell
 ```
 
-### Host System Dependencies
+Building the image requires the following host dependencies:
 
 ```bash
 # Fedora / CentOS Stream
@@ -52,176 +29,70 @@ sudo apt install python3 python3-pip pipx git curl unzip dosfstools mtools rpm c
                  qemu-user-static qemu-utils parted kpartx e2fsprogs xfsprogs dnf
 ```
 
-### Disk Space
+## Repositories
 
-Minimum **50 GB** free in the build directory.
+Images pull Qualcomm-specific packages (firmware, camera, DSP, GPU) from the
+[Qualcomm RPM overlay repository](https://softwarecenter.qualcomm.com/nexus/rpm/centos/10/os/),
+alongside CentOS Stream 10 (BaseOS, AppStream, CRB) and EPEL 10 for the rest
+of the OS. All repositories are declared in [`kiwi/config.xml`](kiwi/config.xml).
 
----
+## Steps
 
-## Architecture & Build Pipeline
+### (optional) Build a custom kernel
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    QCOM RPM Image Build Flow                    │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  Phase 1: Kernel Compilation (RPM)                              │
-│  └─→ build_binrpm_pkg.py                                        │
-│                                                                 │
-│  Phase 2: OS Image Generation (kiwi-ng)                         │
-│  └─→ kiwi-ng build → build/output/image.raw                     │
-│                                                                 │
-│  Phase 3: Flash Artifact Extraction                             │
-│  └─→ extract_flash_artifacts.sh                                 │
-│                                                                 │
-│  Phase 4: Board-Specific Flash Packages                         │
-│  └─→ generate_flat_build.sh                                     │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
+Build your own kernel:
 
----
-
-## Project Structure
-
-```
-.
-├── kiwi/
-│   ├── config.xml               # kiwi image description (repos, packages, type)
-│   ├── config.sh                # Post-install script (hostname, password, locale)
-│   └── root/
-│       └── usr/lib/repart.d/
-│           └── 10-root.conf     # Auto-grow root partition on first boot
-├── packages/                    # Drop custom kernel RPMs here before building
-├── scripts/
-│   ├── build_binrpm_pkg.py      # Kernel RPM builder
-│   ├── extract_flash_artifacts.sh
-│   └── generate_flat_build.sh
-└── build/
-    ├── output/
-    │   ├── image.raw            # Full disk image (EFI + rootfs)
-    │   └── flashimages/
-    │       ├── efi.bin          # Extracted EFI System Partition
-    │       ├── rootfs.img       # Extracted root filesystem
-    │       └── dtbs.tar.gz      # Extracted device tree blobs
-    └── out/
-        └── flash_<board>_<storage>/  # Per-board flash packages
-```
-
----
-
-## Detailed Workflow Phases
-
-### Phase 1: Kernel Compilation (RPM)
-
-**Script**: `scripts/build_binrpm_pkg.py`
-
-**Native Compilation**
 ```bash
+# Native build of the qcom-next kernel
 python3 scripts/build_binrpm_pkg.py --qcom-next
+
+# Cross-compiled
+python3 scripts/build_binrpm_pkg.py --qcom-next --cross-prefix aarch64-linux-gnu- --jobs 16
 ```
 
-**Cross-Compilation Example**
+Copy the resulting RPMs into `packages/` before building the image; `make
+image` runs `createrepo_c` on that directory automatically and adds it to
+kiwi as a high-priority local repository:
+
 ```bash
-python3 scripts/build_binrpm_pkg.py \
-  --qcom-next \
-  --cross-prefix aarch64-linux-gnu- \
-  --jobs 16
+cp linux/rpmbuild/RPMS/aarch64/kernel-*.rpm packages/
 ```
 
-**Kernel Outputs**
-```
-work/linux/
-├── arch/arm64/boot/Image
-├── arch/arm64/boot/dts/*.dtb
-└── rpmbuild/
-    ├── RPMS/aarch64/kernel-*.rpm
-    └── SRPMS/kernel-*.src.rpm
-```
-
----
-
-### Phase 2: OS Image Generation
-
-**Tool**: `kiwi-ng`
+### Build the image
 
 ```bash
 make image
 ```
 
-This runs:
-```bash
-sudo kiwi-ng --type oem system build \
-  --description kiwi/ \
-  --target-dir build/output \
-  [--add-repo file://$PWD/packages,rpm-md,local-packages,1]
+This runs `kiwi` against [`kiwi/config.xml`](kiwi/config.xml) (repositories,
+package list, image type, bootloader) and
+[`kiwi/config.sh`](kiwi/config.sh), producing a full GPT disk image:
+
+```
+build/output/image.raw
 ```
 
-kiwi reads configuration from:
-- `kiwi/config.xml` — image type, repositories, package list, bootloader, kernel cmdline
-- `kiwi/config.sh` — post-install script (hostname, root password, locale, services)
-- `kiwi/root/` — overlay files copied verbatim into the image
-
-**Output**
-```
-build/output/
-└── image.raw    # Full GPT disk image (EFI System Partition + root filesystem)
-```
-
-#### Including a locally built kernel
-
-Copy kernel RPMs into `packages/` before building — `make image` will
-automatically run `createrepo_c` on the directory and pass it to kiwi as a
-high-priority local repository:
+To build the GNOME desktop variant instead of the headless console image:
 
 ```bash
-cp work/linux/rpmbuild/RPMS/aarch64/*.rpm packages/
-make image
+make image KIWI_PROFILE=gnome
 ```
 
 #### Adding extra firmware
 
-Place any firmware files not available in `linux-firmware` under
-`kiwi/root/usr/lib/firmware/` — they will be baked into the image:
+Place any firmware not available in `linux-firmware` under
+`kiwi/root/usr/lib/firmware/qcom/` — it will be baked into the image.
 
-```
-kiwi/root/usr/lib/firmware/
-└── qcom/
-    └── <board-specific firmware files>
-```
-
----
-
-### Phase 3: Flash Artifact Extraction
-
-Extract the EFI System Partition and root filesystem from the raw disk image.
+### Extract flash artifacts
 
 ```bash
 make flash-artifacts
 ```
 
-Or manually:
-```bash
-sudo scripts/extract_flash_artifacts.sh \
-  build/output/image.raw \
-  build/output/flashimages
-```
+Extracts the EFI System Partition and root filesystem from `image.raw` into
+`build/output/flashimages/` (`efi.bin`, `rootfs.img`, `dtbs.tar.gz`).
 
-**Outputs**
-```
-build/output/flashimages/
-├── efi.bin       # EFI System Partition (VFAT, contains GRUB2 + kernel)
-├── rootfs.img    # Root filesystem (EXT4)
-└── dtbs.tar.gz   # Device tree blobs
-```
-
----
-
-### Phase 4: Board-Specific Flash Package Generation
-
-`generate_flat_build.sh` downloads Qualcomm boot binaries and CDT files,
-generates GPT partition tables via `qcom-ptool`, and assembles a complete
-per-board flash directory ready for QDL / PCAT. Drive it through the Makefile:
+### Build board-specific flash packages
 
 ```bash
 # All supported boards (default)
@@ -231,30 +102,35 @@ make flash
 make flash TARGET_BOARDS=qcs6490-rb3gen2
 ```
 
-<details>
-<summary>Under the hood: the raw <code>generate_flat_build.sh</code> invocation</summary>
+`scripts/generate_flat_build.sh` downloads Qualcomm boot binaries and CDT
+files, generates GPT partition tables via `qcom-ptool`, and assembles a
+complete per-board flash directory ready for QDL:
 
-```bash
-make flash
+```
+build/out/flash_qcs6490-rb3gen2_ufs/
+├── prog_firehose_ddr_*.elf   # Firehose programmer
+├── rawprogram*.xml           # Flash programming script
+├── patch*.xml                # Patch script
+├── gpt_*.bin                 # GPT partition table
+├── efi.bin                   # EFI System Partition
+├── rootfs.img                # Root filesystem
+├── dtb.bin                   # DTB VFAT (FIT multi-DTB or single-DTB)
+├── cdt.bin                   # Active CDT (vision-kit default)
+├── cdt_core_kit.bin          # Core-kit CDT
+├── cdt_industrial_kit.bin    # Industrial-kit CDT
+└── vmlinux                   # Kernel ELF (for crash debugging)
 ```
 
-Or manually:
-```bash
-./scripts/generate_flat_build.sh \
-  --dtbs-tar    build/output/flashimages/dtbs.tar.gz \
-  --esp-vfat    build/output/flashimages/efi.bin \
-  --rootfs-ext4 build/output/flashimages/rootfs.img
-```
+#### CDT selection
 
-</details>
+All three kit variants share a single board entry and bundle all CDTs in the
+flash directory; `cdt.bin` targets the vision-kit by default. To flash a
+different kit, swap in the matching CDT file (e.g. `cdt_core_kit.bin`) for
+`cdt.bin` before running QDL.
 
-#### Build a subset of boards
+## Key options
 
-```bash
-make flash TARGET_BOARDS=qcs6490-rb3gen2
-```
-
-#### Key options (`generate_flat_build.sh`)
+### `generate_flat_build.sh`
 
 | Option | Default | Description |
 |---|---|---|
@@ -265,14 +141,12 @@ make flash TARGET_BOARDS=qcs6490-rb3gen2
 | `--use-fit-image=(true\|false)` | `true` | `true` = FIT multi-DTB via `build-dtb-image.sh` (falls back to single-DTB on failure); `false` = single-DTB |
 | `--verbose=(true\|false)` | `false` | Enable debug output |
 
-#### Makefile variables
-
-The Makefile targets (`make image`, `make flash-artifacts`, `make flash`) accept
-these overrides on the command line (see `make help` for the full list):
+### Makefile variables
 
 | Variable | Default | Description |
 |---|---|---|
 | `ARCH` | `aarch64` | Target architecture passed to kiwi-ng |
+| `KIWI_PROFILE` | `console` | Image profile: `console` (headless) or `gnome` (desktop) |
 | `TARGET_BOARDS` | `qcs6490-rb3gen2` | Comma-separated boards (or `all`) for `make flash` |
 | `USE_FIT_IMAGE` | `1` | `1` = FIT multi-DTB image (recommended); `0` = single-DTB VFAT |
 | `ARTIFACTDIR` | `build/out` | Flash package output directory |
@@ -280,28 +154,12 @@ these overrides on the command line (see `make help` for the full list):
 | `EXTRA_KIWI_OPTS` | _unset_ | Extra flags forwarded to `kiwi-ng` |
 | `KIWI_PACKAGES_DIR` | `packages` | Directory for custom kernel RPMs |
 
-**Flash outputs**
-```
-build/out/
-├── dtb-multidtb.bin              # FIT multi-DTB FAT image (USE_FIT_IMAGE=1)
-└── flash_qcs6490-rb3gen2_ufs/
-    ├── prog_firehose_ddr_*.elf   # Firehose programmer
-    ├── rawprogram*.xml           # Flash programming script
-    ├── patch*.xml                # Patch script
-    ├── gpt_*.bin                 # GPT partition table
-    ├── efi.bin                   # EFI System Partition
-    ├── rootfs.img                # Root filesystem
-    ├── dtb.bin                   # DTB VFAT (FIT multi-DTB or single-DTB)
-    ├── dtb-multi-dtb-image.vfat  # FIT multi-DTB alias (USE_FIT_IMAGE=1)
-    ├── dtb-<soc>-image.vfat      # SoC-specific DTB alias (USE_FIT_IMAGE=1)
-    ├── cdt.bin                   # Active CDT (vision-kit default)
-    ├── cdt_core_kit.bin          # Core-kit CDT
-    ├── cdt_industrial_kit.bin    # Industrial-kit CDT
-    └── vmlinux                   # Kernel ELF (for crash debugging)
-```
+See `make help` for the full list.
 
+## Development
 
----
+Please submit any patches using GitHub pull requests. Please read
+[CONTRIBUTING.md file](CONTRIBUTING.md) for step by step instructions.
 
 ## License
 
