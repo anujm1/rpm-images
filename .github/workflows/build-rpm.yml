@@ -48,7 +48,7 @@ jobs:
           kernel-ref: qcom-6.18.y-20260911
 
       - name: Upload kernel artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: kernel-artifacts
           if-no-files-found: error
@@ -58,7 +58,7 @@ jobs:
           retention-days: 1
 
       - name: Upload kernel vmlinux ELF
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: kernel-vmlinux
           if-no-files-found: error
@@ -223,7 +223,7 @@ jobs:
           done
 
       - name: Upload flash package artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: rpm-artifacts-${{ matrix.profile }}
           if-no-files-found: error
@@ -240,7 +240,7 @@ jobs:
           done
 
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: sboms-${{ matrix.profile }}
           if-no-files-found: error
