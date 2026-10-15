@@ -78,7 +78,7 @@ jobs:
     runs-on: [self-hosted, platform-prd-u2404-arm64-large-od-ephem]
     steps:
       - name: Download kernel artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: kernel-artifacts
           path: kernel-artifacts
@@ -125,7 +125,7 @@ jobs:
         uses: ./.github/actions/install-host-deps
 
       - name: Download kernel artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: kernel-artifacts
           path: kernel-artifacts
@@ -137,7 +137,7 @@ jobs:
           cp kernel-artifacts/RPMS/aarch64/*.rpm packages/
 
       - name: Download kernel vmlinux ELF
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: kernel-vmlinux
           path: kernel-vmlinux
@@ -256,25 +256,25 @@ jobs:
       url: ${{ steps.url.outputs.url }}
     steps:
       - name: Download console flash package artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: rpm-artifacts-console
           path: downloaded/rpm-artifacts-console
 
       - name: Download gnome flash package artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: rpm-artifacts-gnome
           path: downloaded/rpm-artifacts-gnome
 
       - name: Download console SBOM artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: sboms-console
           path: downloaded/sboms-console
 
       - name: Download gnome SBOM artifact
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: sboms-gnome
           path: downloaded/sboms-gnome
