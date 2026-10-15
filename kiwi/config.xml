@@ -153,11 +153,6 @@
     <package name="fastrpc-services"/>
     <package name="hexagon-dsp-binaries-qualcomm-qcm6490-idp"/>
 
-    <!-- Qualcomm repository -->
-    <package name="iris-vpu"/>
-    <package name="qcom-fastcv-binaries"/>
-    <package name="qcom-fastcv-binaries-utils"/>
-
     <!-- Repositories -->
     <package name="epel-release"/>
   </packages>
@@ -171,6 +166,12 @@
     <package name="camx-firmware-kodiak"/>
     <package name="camx-kodiak"/>
     <package name="libcamx-kodiak1"/>
+
+    <!-- Qualcomm repository -->
+    <package name="iris-vpu"/>
+    <package name="qcom-fastcv-binaries"/>
+    <package name="qcom-fastcv-binaries-utils"/>
+
   </packages>
 
 </image>
